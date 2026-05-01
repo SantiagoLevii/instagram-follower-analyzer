@@ -1,0 +1,23 @@
+{
+  "name": "instagram-follower-analyzer",
+  "version": "1.0.0",
+  "description": "See who doesn't follow you back - paste in console, done.",
+  "scripts": {
+    "build": "webpack --mode production && node scripts/update-index.js",
+    "dev": "webpack --mode development --watch"
+  },
+  "dependencies": {
+    "preact": "^10.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "css-loader": "^7.1.0",
+    "sass": "^1.80.0",
+    "sass-loader": "^16.0.0",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.0",
+    "typescript": "^5.6.0",
+    "webpack": "^5.96.0",
+    "webpack-cli": "^5.1.0"
+  }
+}
