@@ -41,7 +41,7 @@
    - **Windows/Linux**: `F12` or `Ctrl+Shift+J` (Chrome) / `Ctrl+Shift+K` (Firefox)
    - **Mac**: `Cmd+Option+J` (Chrome) / `Cmd+Option+K` (Firefox)
 3. Click the **Console** tab
-4. Visit the [landing page](https://santiago-levi.github.io/instagram-follower-analyzer/), click **COPY CODE**
+4. Visit the [landing page](https://santiagolevii.github.io/instagram-follower-analyzer/), click **COPY CODE**
 5. Paste into the console and press `Enter`
 6. A floating panel appears in the top-right corner
 7. Click **SCAN** and wait for it to complete
@@ -52,7 +52,7 @@ Re-pasting the script toggles the panel's visibility.
 
 ## Usage - Bookmarklet
 
-1. Visit the [landing page](https://santiago-levi.github.io/instagram-follower-analyzer/)
+1. Visit the [landing page](https://santiagolevii.github.io/instagram-follower-analyzer/)
 2. Drag the **IFA Bookmarklet** link to your bookmarks bar
 3. Navigate to instagram.com while logged in
 4. Click the bookmarklet in your bookmarks bar
@@ -114,7 +114,7 @@ Progress is shown in real time. Whitelisted users are always skipped.
 ## Development
 
 ```bash
-git clone https://github.com/santiago-levi/instagram-follower-analyzer
+git clone https://github.com/SantiagoLevii/instagram-follower-analyzer
 cd instagram-follower-analyzer
 npm install
 npm run build   # outputs docs/dist.js + updates docs/index.html
