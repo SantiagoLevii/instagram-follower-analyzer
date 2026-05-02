@@ -14,8 +14,7 @@ function sleep(ms: number): Promise<void> {
 
 export function useInstagramAPI(
   settings: Settings,
-  addToast: (msg: string, type: 'info' | 'success' | 'error' | 'cooldown', duration?: number) => string,
-  removeToast: (id: string) => void
+  addToast: (msg: string, type: 'info' | 'success' | 'error' | 'cooldown', duration?: number) => string
 ) {
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState<ScanProgress | null>(null);
@@ -38,15 +37,9 @@ export function useInstagramAPI(
       const followers = await fetchAllFollowers(
         userId,
         settings,
-        (n, secs, is429) => {
+        (n, secs, is429, reqNum) => {
           followersCount = n;
-          setProgress({ phase: 'followers', followersLoaded: n, followingLoaded: 0, cooldownSecs: secs, is429 });
-          if (secs !== undefined) {
-            const msg = is429
-              ? `Rate limited by Instagram, waiting ${secs}s...`
-              : `Cooldown: ${secs}s remaining (anti-ban protection)`;
-            addToast(msg, is429 ? 'error' : 'cooldown', 0);
-          }
+          setProgress({ phase: 'followers', followersLoaded: n, followingLoaded: 0, cooldownSecs: secs, is429, reqNum });
         },
         ctrlRef.current.signal
       );
@@ -54,14 +47,8 @@ export function useInstagramAPI(
       const following = await fetchAllFollowing(
         userId,
         settings,
-        (n, secs, is429) => {
-          setProgress({ phase: 'following', followersLoaded: followersCount, followingLoaded: n, cooldownSecs: secs, is429 });
-          if (secs !== undefined) {
-            const msg = is429
-              ? `Rate limited by Instagram, waiting ${secs}s...`
-              : `Cooldown: ${secs}s remaining (anti-ban protection)`;
-            addToast(msg, is429 ? 'error' : 'cooldown', 0);
-          }
+        (n, secs, is429, reqNum) => {
+          setProgress({ phase: 'following', followersLoaded: followersCount, followingLoaded: n, cooldownSecs: secs, is429, reqNum });
         },
         ctrlRef.current.signal
       );
@@ -121,12 +108,11 @@ export function useInstagramAPI(
           const apiErr = err as { status?: number };
           if (apiErr?.status === 429) {
             const waitSecs = backoffMs / 1000;
-            const toastId = addToast(`Rate limited by Instagram, waiting ${waitSecs}s...`, 'error', 0);
+            addToast(`Instagram rate limited this session. Pausing ${waitSecs}s...`, 'error', 4000);
             for (let s = waitSecs; s > 0; s--) {
               setUnfollowProgress({ done: i, total, cooldownSecs: s });
               await sleep(1000);
             }
-            removeToast(toastId);
             backoffMs = Math.min(backoffMs * 2, 900_000);
           } else if (apiErr?.status === 401) {
             addToast('Session expired. Reload Instagram and try again.', 'error', 0);
@@ -141,25 +127,18 @@ export function useInstagramAPI(
 
       if (success) {
         unfollowed.push(user.pk);
-        const nextCooldownIn = 10 - ((i + 1) % 10);
         setUnfollowProgress({ done: i + 1, total, cooldownSecs: undefined });
-        addToast(
-          `Unfollowed @${user.username} (${i + 1}/${total})${nextCooldownIn <= 3 && nextCooldownIn > 0 ? ` - cooldown in ${nextCooldownIn}` : ''}`,
-          'info',
-          3000
-        );
+        addToast(`Unfollowed @${user.username} (${i + 1}/${total})`, 'info', 3000);
         backoffMs = 120_000;
       }
 
       if (i < targets.length - 1) {
         if ((i + 1) % 10 === 0) {
           const secs = settings.unfollowCooldown;
-          const toastId = addToast(`Cooldown: pausing ${secs}s (anti-ban)...`, 'cooldown', 0);
           for (let s = secs; s > 0; s--) {
             setUnfollowProgress({ done: i + 1, total, cooldownSecs: s });
             await sleep(1000);
           }
-          removeToast(toastId);
         } else {
           await sleep(settings.unfollowDelay);
         }
@@ -168,7 +147,7 @@ export function useInstagramAPI(
 
     setUnfollowProgress(null);
     onComplete(unfollowed);
-  }, [settings, addToast, removeToast]);
+  }, [settings, addToast]);
 
   return { scanning, progress, unfollowProgress, startScan, cancelScan, runUnfollow };
 }

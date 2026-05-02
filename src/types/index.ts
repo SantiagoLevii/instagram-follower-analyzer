@@ -29,6 +29,7 @@ export interface ScanProgress {
   phase: 'followers' | 'following';
   followersLoaded: number;
   followingLoaded: number;
+  reqNum?: number;
   cooldownSecs?: number;
   is429?: boolean;
 }

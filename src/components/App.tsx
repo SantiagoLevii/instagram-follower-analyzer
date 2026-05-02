@@ -7,6 +7,7 @@ import { UserList } from './UserList';
 import { Snapshots } from './Snapshots';
 import { Settings } from './Settings';
 import { Toast } from './Toast';
+import { StatusBar } from './StatusBar';
 import { ConfirmDialog } from './ConfirmDialog';
 import { useInstagramAPI } from '../hooks/useInstagramAPI';
 import { useSnapshots } from '../hooks/useSnapshots';
@@ -61,8 +62,7 @@ export function App() {
 
   const { scanning, progress, unfollowProgress, startScan, cancelScan, runUnfollow } = useInstagramAPI(
     settings,
-    addToast,
-    removeToast
+    addToast
   );
 
   const computed = useMemo(() => {
@@ -279,6 +279,8 @@ export function App() {
             Settings
           </button>
         </div>
+
+        <StatusBar scanning={scanning} progress={progress} unfollowProgress={unfollowProgress} />
 
         <div class="ifa-content">
           {renderContent()}

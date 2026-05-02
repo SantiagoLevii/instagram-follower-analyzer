@@ -149,6 +149,44 @@
   }
 }
 
+// Status bar
+.ifa-status-bar {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  background: var(--ifa-surface);
+  border-bottom: 1px solid var(--ifa-border);
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--ifa-text-muted);
+}
+
+.ifa-status-bar__text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+.ifa-status-bar__progress {
+  width: 80px;
+  height: 3px;
+  background: var(--ifa-border);
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.ifa-status-bar__progress-fill {
+  height: 100%;
+  background: var(--ifa-warning);
+  border-radius: 2px;
+  transition: width 0.9s linear;
+}
+
 // Content
 .ifa-overlay__content {
   display: flex;

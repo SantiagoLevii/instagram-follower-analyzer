@@ -23,7 +23,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise(r => setTimeout(r, ms));
 }
 
-type ProgressCb = (loaded: number, cooldownSecs?: number, is429?: boolean) => void;
+type ProgressCb = (loaded: number, cooldownSecs?: number, is429?: boolean, reqNum?: number) => void;
 
 interface IGApiError {
   status: number;
@@ -69,17 +69,17 @@ async function fetchAll(
       users.push(...data.users);
       reqCount++;
       cursor = data.next_max_id;
-      onProgress(users.length);
+      onProgress(users.length, undefined, undefined, reqCount);
 
       if (!cursor) break;
 
       if (reqCount % 10 === 0) {
         const secs = settings.scanCooldown;
         for (let s = secs; s > 0 && !signal.aborted; s--) {
-          onProgress(users.length, s);
+          onProgress(users.length, s, false, reqCount);
           await sleep(1000);
         }
-        onProgress(users.length);
+        onProgress(users.length, undefined, undefined, reqCount);
       } else {
         const jitter = Math.random() * 700;
         await sleep(settings.requestDelay + jitter);
@@ -92,7 +92,7 @@ async function fetchAll(
       if (apiErr?.status === 429) {
         const waitSecs = backoffMs / 1000;
         for (let s = waitSecs; s > 0 && !signal.aborted; s--) {
-          onProgress(users.length, s, true);
+          onProgress(users.length, s, true, reqCount);
           await sleep(1000);
         }
         backoffMs = Math.min(backoffMs * 2, 900_000);
