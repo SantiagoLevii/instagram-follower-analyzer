@@ -1,19 +1,20 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
-import type { ScanProgress, UnfollowProgress } from '../types';
+import type { ScanProgress, UnfollowProgress, FollowProgress } from '../types';
 
 interface Props {
   scanning: boolean;
   progress: ScanProgress | null;
   unfollowProgress: UnfollowProgress | null;
+  followProgress: FollowProgress | null;
 }
 
-export function StatusBar({ scanning, progress, unfollowProgress }: Props) {
+export function StatusBar({ scanning, progress, unfollowProgress, followProgress }: Props) {
   const [scanDone, setScanDone] = useState(false);
   const [maxCooldown, setMaxCooldown] = useState(0);
   const wasActiveRef = useRef(false);
   const prevCooldownRef = useRef<number | undefined>(undefined);
 
-  const isActive = scanning || !!progress || !!unfollowProgress;
+  const isActive = scanning || !!progress || !!unfollowProgress || !!followProgress;
 
   useEffect(() => {
     if (!isActive && wasActiveRef.current) {
@@ -28,7 +29,7 @@ export function StatusBar({ scanning, progress, unfollowProgress }: Props) {
     }
   }, [isActive]);
 
-  const activeCooldown = progress?.cooldownSecs ?? unfollowProgress?.cooldownSecs;
+  const activeCooldown = progress?.cooldownSecs ?? unfollowProgress?.cooldownSecs ?? followProgress?.cooldownSecs;
 
   useEffect(() => {
     if (activeCooldown !== undefined && prevCooldownRef.current === undefined) {
@@ -42,7 +43,16 @@ export function StatusBar({ scanning, progress, unfollowProgress }: Props) {
   let text = '';
   let cooldownPct: number | null = null;
 
-  if (unfollowProgress) {
+  if (followProgress) {
+    if (followProgress.cooldownSecs !== undefined) {
+      text = `Cooldown: ${followProgress.cooldownSecs}s remaining`;
+      cooldownPct = maxCooldown > 0 ? followProgress.cooldownSecs / maxCooldown : 1;
+    } else {
+      const next10 = 10 - (followProgress.done % 10);
+      const hint = next10 <= 3 && next10 > 0 ? ` (cooldown in ${next10})` : '';
+      text = `Following ${followProgress.done}/${followProgress.total}...${hint}`;
+    }
+  } else if (unfollowProgress) {
     if (unfollowProgress.cooldownSecs !== undefined) {
       text = `Cooldown: ${unfollowProgress.cooldownSecs}s remaining`;
       cooldownPct = maxCooldown > 0 ? unfollowProgress.cooldownSecs / maxCooldown : 1;

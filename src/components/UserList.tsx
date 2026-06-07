@@ -5,17 +5,20 @@ import { exportCSV, exportTXT } from '../utils/export';
 import type { IGUser, TabId } from '../types';
 
 const UNFOLLOW_TABS: TabId[] = ['not-following-back', 'mutuals', 'following'];
+const FOLLOW_TABS: TabId[] = ['not-followed-back', 'followers'];
 
 interface Props {
   users: IGUser[];
   whitelist: Set<string>;
   onToggleWhitelist: (username: string) => void;
   onUnfollowSelected: (users: IGUser[]) => void;
+  onFollowSelected: (users: IGUser[]) => void;
   tabId: TabId;
   unfollowProgress: { done: number; total: number; cooldownSecs?: number } | null;
+  followProgress: { done: number; total: number; cooldownSecs?: number } | null;
 }
 
-export function UserList({ users, whitelist, onToggleWhitelist, onUnfollowSelected, tabId, unfollowProgress }: Props) {
+export function UserList({ users, whitelist, onToggleWhitelist, onUnfollowSelected, onFollowSelected, tabId, unfollowProgress, followProgress }: Props) {
   const { search, setSearch, sort, setSort, filtered } = useFilters(users);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -49,6 +52,8 @@ export function UserList({ users, whitelist, onToggleWhitelist, onUnfollowSelect
   );
 
   const showUnfollowBtn = UNFOLLOW_TABS.includes(tabId);
+  const showFollowBtn = FOLLOW_TABS.includes(tabId);
+  const anyActionInProgress = !!unfollowProgress || !!followProgress;
 
   const handleExport = (format: 'csv' | 'txt') => {
     const base = `ifa-${tabId}-${new Date().toISOString().slice(0, 10)}`;
@@ -107,6 +112,17 @@ export function UserList({ users, whitelist, onToggleWhitelist, onUnfollowSelect
               }`}
         </div>
       )}
+      {followProgress && (
+        <div class="ifa-unfollow-bar">
+          {followProgress.cooldownSecs
+            ? `Cooldown: ${followProgress.cooldownSecs}s (anti-ban)...`
+            : `Following ${followProgress.done}/${followProgress.total}...${
+                10 - (followProgress.done % 10) <= 3 && followProgress.done % 10 !== 0
+                  ? ` cooldown in ${10 - (followProgress.done % 10)}`
+                  : ''
+              }`}
+        </div>
+      )}
 
       <div class="ifa-user-list__items">
         {filtered.map(user => (
@@ -124,13 +140,23 @@ export function UserList({ users, whitelist, onToggleWhitelist, onUnfollowSelect
         )}
       </div>
 
-      {showUnfollowBtn && selectedUsers.length > 0 && !unfollowProgress && (
+      {showUnfollowBtn && selectedUsers.length > 0 && !anyActionInProgress && (
         <div class="ifa-user-list__actions">
           <button
             class="ifa-btn ifa-btn--danger"
             onClick={() => onUnfollowSelected(selectedUsers)}
           >
             Unfollow Selected ({selectedUsers.length})
+          </button>
+        </div>
+      )}
+      {showFollowBtn && selectedUsers.length > 0 && !anyActionInProgress && (
+        <div class="ifa-user-list__actions">
+          <button
+            class="ifa-btn ifa-btn--primary"
+            onClick={() => onFollowSelected(selectedUsers)}
+          >
+            Follow Selected ({selectedUsers.length})
           </button>
         </div>
       )}

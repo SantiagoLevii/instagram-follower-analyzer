@@ -1,12 +1,15 @@
 import { useState, useRef, useCallback } from 'preact/hooks';
-import { fetchAllFollowers, fetchAllFollowing, getUserId, unfollowUser, getCsrfToken } from '../api/instagram';
-import type { IGUser, Settings, ScanProgress, UnfollowProgress } from '../types';
+import { fetchAllFollowers, fetchAllFollowing, getUserId, unfollowUser, followUser, getCsrfToken } from '../api/instagram';
+import type { IGUser, Settings, ScanProgress, UnfollowProgress, FollowProgress } from '../types';
 
 interface ScanResult {
   followers: IGUser[];
   following: IGUser[];
   scannedAt: string;
 }
+
+const FOLLOW_DELAY = 10_000;
+const FOLLOW_COOLDOWN_SECS = 120;
 
 function sleep(ms: number): Promise<void> {
   return new Promise(r => setTimeout(r, ms));
@@ -19,6 +22,7 @@ export function useInstagramAPI(
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState<ScanProgress | null>(null);
   const [unfollowProgress, setUnfollowProgress] = useState<UnfollowProgress | null>(null);
+  const [followProgress, setFollowProgress] = useState<FollowProgress | null>(null);
   const ctrlRef = useRef<AbortController | null>(null);
 
   const startScan = useCallback(async (): Promise<ScanResult | null> => {
@@ -149,5 +153,74 @@ export function useInstagramAPI(
     onComplete(unfollowed);
   }, [settings, addToast]);
 
-  return { scanning, progress, unfollowProgress, startScan, cancelScan, runUnfollow };
+  const runFollow = useCallback(async (
+    targets: IGUser[],
+    onComplete: (followed: IGUser[]) => void
+  ) => {
+    const csrfToken = getCsrfToken();
+    if (!csrfToken) {
+      addToast('No CSRF token found. Try reloading Instagram.', 'error', 5000);
+      return;
+    }
+
+    const total = targets.length;
+    const followed: IGUser[] = [];
+    let backoffMs = 120_000;
+
+    setFollowProgress({ done: 0, total });
+
+    for (let i = 0; i < targets.length; i++) {
+      const user = targets[i];
+      let success = false;
+
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          await followUser(user.pk, csrfToken);
+          success = true;
+          break;
+        } catch (err: unknown) {
+          const apiErr = err as { status?: number };
+          if (apiErr?.status === 429) {
+            const waitSecs = backoffMs / 1000;
+            addToast(`Instagram rate limited this session. Pausing ${waitSecs}s...`, 'error', 4000);
+            for (let s = waitSecs; s > 0; s--) {
+              setFollowProgress({ done: i, total, cooldownSecs: s });
+              await sleep(1000);
+            }
+            backoffMs = Math.min(backoffMs * 2, 900_000);
+          } else if (apiErr?.status === 401) {
+            addToast('Session expired. Reload Instagram and try again.', 'error', 0);
+            setFollowProgress(null);
+            return;
+          } else {
+            addToast(`Failed to follow @${user.username}`, 'error', 3000);
+            break;
+          }
+        }
+      }
+
+      if (success) {
+        followed.push(user);
+        setFollowProgress({ done: i + 1, total, cooldownSecs: undefined });
+        addToast(`Followed @${user.username} (${i + 1}/${total})`, 'info', 3000);
+        backoffMs = 120_000;
+      }
+
+      if (i < targets.length - 1) {
+        if ((i + 1) % 10 === 0) {
+          for (let s = FOLLOW_COOLDOWN_SECS; s > 0; s--) {
+            setFollowProgress({ done: i + 1, total, cooldownSecs: s });
+            await sleep(1000);
+          }
+        } else {
+          await sleep(FOLLOW_DELAY);
+        }
+      }
+    }
+
+    setFollowProgress(null);
+    onComplete(followed);
+  }, [addToast]);
+
+  return { scanning, progress, unfollowProgress, followProgress, startScan, cancelScan, runUnfollow, runFollow };
 }

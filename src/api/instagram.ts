@@ -125,6 +125,20 @@ export function fetchAllFollowing(
   return fetchAll(userId, 'following', settings, onProgress, signal);
 }
 
+export async function followUser(targetUserId: string, csrfToken: string): Promise<void> {
+  const res = await fetch(
+    `https://www.instagram.com/api/v1/friendships/create/${targetUserId}/`,
+    {
+      credentials: 'include',
+      headers: { ...BASE_HEADERS, 'x-csrftoken': csrfToken },
+      method: 'POST',
+    }
+  );
+  if (res.status === 429) throw { status: 429 } as IGApiError;
+  if (res.status === 401) throw { status: 401 } as IGApiError;
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
 export async function unfollowUser(targetUserId: string, csrfToken: string): Promise<void> {
   const res = await fetch(
     `https://www.instagram.com/api/v1/friendships/destroy/${targetUserId}/`,

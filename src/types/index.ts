@@ -40,6 +40,12 @@ export interface UnfollowProgress {
   cooldownSecs?: number;
 }
 
+export interface FollowProgress {
+  done: number;
+  total: number;
+  cooldownSecs?: number;
+}
+
 export interface DiffResult {
   newFollowers: string[];
   lostFollowers: string[];

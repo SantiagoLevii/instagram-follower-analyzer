@@ -60,7 +60,7 @@ export function App() {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  const { scanning, progress, unfollowProgress, startScan, cancelScan, runUnfollow } = useInstagramAPI(
+  const { scanning, progress, unfollowProgress, followProgress, startScan, cancelScan, runUnfollow, runFollow } = useInstagramAPI(
     settings,
     addToast
   );
@@ -149,6 +149,26 @@ export function App() {
     setActiveTab(tab);
     setNavView('home');
   }, []);
+
+  const handleFollowSelected = useCallback((targets: IGUser[]) => {
+    const n = targets.length;
+    const estSecs = (n - 1) * 10 + Math.floor(n / 10) * 120;
+    const estMins = Math.ceil(estSecs / 60);
+
+    setConfirm({
+      message: `You are about to follow ${n} user${n !== 1 ? 's' : ''}. Are you sure?`,
+      detail: n > 5
+        ? `This will take approximately ${estMins} minute${estMins !== 1 ? 's' : ''} due to anti-ban cooldowns.`
+        : undefined,
+      onConfirm: () => {
+        runFollow(targets, followed => {
+          setScanData(prev =>
+            prev ? { ...prev, following: [...prev.following, ...followed] } : prev
+          );
+        });
+      },
+    });
+  }, [runFollow]);
 
   const handleUnfollowSelected = useCallback((targets: IGUser[]) => {
     const n = targets.length;
@@ -245,8 +265,10 @@ export function App() {
           whitelist={whitelist}
           onToggleWhitelist={toggleWhitelist}
           onUnfollowSelected={handleUnfollowSelected}
+          onFollowSelected={handleFollowSelected}
           tabId={activeTab}
           unfollowProgress={unfollowProgress}
+          followProgress={followProgress}
         />
       </>
     );
@@ -280,7 +302,7 @@ export function App() {
           </button>
         </div>
 
-        <StatusBar scanning={scanning} progress={progress} unfollowProgress={unfollowProgress} />
+        <StatusBar scanning={scanning} progress={progress} unfollowProgress={unfollowProgress} followProgress={followProgress} />
 
         <div class="ifa-content">
           {renderContent()}
